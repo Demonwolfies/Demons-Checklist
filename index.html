@@ -84,7 +84,7 @@
       background-color: #5a6268;
     }
 
-    /* Right column: "Completed 0 of 0 items" plus the row of mass select, multi delete, down arrow */
+    /* Right column: "Completed 0 of 0 items" plus the row of mass select, multi delete, arrow */
     .header-right-col {
       display: flex;
       flex-direction: column;
@@ -351,17 +351,17 @@
 
     // Default rename config
     const defaultTitle = "Demon's";
-    const maxChars = 20;
+    const maxChars = 10; // changed to 15 from 20 - then from 15 to 10
 
     // Toggle import/export
     toggleImportExport.addEventListener('click', () => {
       importExportPanel.classList.toggle('show');
     });
 
-    // Rename Title via prompt
+    // Rename Title via prompt (10-character limit)
     renameButton.addEventListener('click', () => {
       const currentName = renameableTitleEl.textContent;
-      let newName = prompt("Enter new title (max 20 characters):", currentName);
+      let newName = prompt("Enter new title (max 10 characters):", currentName);
       if (newName === null) return; // canceled
       newName = newName.trim().slice(0, maxChars);
       if (!newName) newName = defaultTitle;
