@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <!-- Responsive meta tag for mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>My Checklist</title>
+  <title>Demon's Checklist</title>
   <link href="https://fonts.googleapis.com/css2?family=Gabriola&display=swap" rel="stylesheet">
   <style>
     /* General Body Styling */
@@ -33,31 +33,77 @@
       background-color: #2e2e2e;
       position: relative;
     }
+
+    /* We split the header into a left column (title + select buttons)
+       and a right column (counter + mass select + multi delete + arrow).
+       They are placed side by side at the top. */
     .header-container {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 40px; /* extra space for absolute-positioned counter */
+      justify-content: space-between; /* left col on left, right col on right */
+      align-items: flex-start;       /* top-align them */
+      margin-bottom: 20px;
     }
-    .header-left {
-      position: relative; /* so #counter can be absolutely positioned inside */
+
+    /* Left column: Title and "Select All" / "Deselect All" stacked */
+    .header-left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
+    /* Title styling */
     h2 {
       margin: 0;
       font-family: 'Gabriola', sans-serif;
       color: #f1c6b3;
       font-size: 2em;
+      line-height: 1.2;
     }
-    /* Styling for the counter */
+    #renameableTitle {
+      color: #f1c6b3;
+      cursor: pointer;
+    }
+
+    /* The stacked select/deselect buttons just under the title */
+    .stacked-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .stacked-button {
+      padding: 4px 8px;
+      font-size: 12px;
+      border: none;
+      background-color: #6c757d;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100px;
+      text-align: center;
+    }
+    .stacked-button:hover {
+      background-color: #5a6268;
+    }
+
+    /* Right column: "Completed 0 of 0 items" plus the row of mass select, multi delete, down arrow */
+    .header-right-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end; /* push content to the right edge */
+      gap: 8px;
+    }
+    /* The row with mass select, multi delete, arrow */
+    .button-row {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    /* The counter at the top of the right column */
     #counter {
-      position: absolute;
-      top: 100%; /* just below the header-left content */
-      left: 0;
       font-size: 0.9em;
       white-space: nowrap;
       color: #e4e7eb;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     }
+
     .toggle-button {
       padding: 8px 12px;
       border: none;
@@ -83,32 +129,12 @@
     .scroll-button:hover {
       background-color: #5a6268;
     }
-    /* Container for the Select All / Deselect All stacked buttons */
-    .stacked-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      margin-bottom: 10px;
-    }
-    .stacked-button {
-      padding: 4px 8px;
-      font-size: 12px;
-      border: none;
-      background-color: #6c757d;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      width: 100px;
-      text-align: center;
-    }
-    .stacked-button:hover {
-      background-color: #5a6268;
-    }
+
+    /* List styling */
     ul {
       list-style: none;
       padding: 0;
     }
-    /* Updated list item layout using grid */
     li {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
@@ -122,10 +148,8 @@
     li input[type="checkbox"]:checked + span {
       text-decoration: line-through;
     }
-    /* Ensure text wraps properly within its grid cell */
     li span {
       overflow-wrap: break-word;
-      word-wrap: break-word; /* legacy */
       white-space: normal;
       min-width: 0;
       cursor: pointer;
@@ -145,6 +169,8 @@
       background-color: #bbb;
       cursor: not-allowed;
     }
+
+    /* Add item input + button */
     #addItem {
       width: calc(100% - 90px);
       padding: 10px;
@@ -166,6 +192,8 @@
     #addButton:hover {
       background-color: #9d4f64;
     }
+
+    /* Clear All button */
     #clearAll {
       margin-top: 20px;
       padding: 10px;
@@ -179,11 +207,13 @@
     #clearAll:hover {
       background-color: #9d4f64;
     }
+
     #scrollToTop {
       display: block;
       margin-top: 20px;
       margin-bottom: 20px;
     }
+
     /* Import/Export Container */
     #importExportContainer {
       width: 250px;
@@ -192,12 +222,10 @@
       align-items: stretch;
       gap: 10px;
     }
-    /* The toggle button for import/export with a rose gold border */
     #toggleImportExport {
       align-self: flex-end;
       border: 2px solid #b76e79;
     }
-    /* The panel is hidden by default */
     #importExportPanel {
       display: none;
       border: 2px solid #b76e79;
@@ -207,7 +235,6 @@
       background-color: #2e2e2e;
       color: #e4e7eb;
     }
-    /* When visible, the panel shows */
     #importExportPanel.show {
       display: block;
     }
@@ -225,10 +252,24 @@
       padding: 5px;
       border: 1px solid #555;
       border-radius: 4px;
-      background-color: #444;
+      background-color: transparent;
       color: #e4e7eb;
       font-size: 16px;
       box-sizing: border-box;
+    }
+    /* "Rename Title" button for prompt-based rename approach */
+    #renameButton {
+      padding: 4px 8px;
+      font-size: 12px;
+      border: 1px solid #b76e79;
+      border-radius: 4px;
+      background-color: transparent;
+      color: #f1c6b3;
+      cursor: pointer;
+    }
+    #renameButton:hover {
+      background-color: #b76e79;
+      color: white;
     }
   </style>
 </head>
@@ -236,24 +277,32 @@
   <div class="app-container">
     <!-- Checklist Section -->
     <div id="checklistContainer">
+      <!-- HEADER -->
       <div class="header-container">
-        <div class="header-left">
-          <h2>My Checklist</h2>
+        <!-- LEFT COLUMN: Title & stacked select/deselect -->
+        <div class="header-left-col">
+          <h2>
+            <span id="renameableTitle">Demon's</span><br>
+            Checklist
+          </h2>
+          <div class="stacked-buttons">
+            <button id="selectAll" class="stacked-button">Select All</button>
+            <button id="deselectAll" class="stacked-button">Deselect All</button>
+          </div>
+        </div>
+        <!-- RIGHT COLUMN: Counter on top, then mass select / multi-delete / arrow -->
+        <div class="header-right-col">
           <div id="counter">Completed 0 of 0 items</div>
-        </div>
-        <div class="header-right">
-          <button id="massSelectToggle" class="toggle-button">Mass Select: Off</button>
-          <button id="multiDeleteToggle" class="toggle-button">Multi-Delete: Off</button>
-          <button id="scrollToBottom" class="scroll-button">▼</button>
+          <div class="button-row">
+            <button id="massSelectToggle" class="toggle-button">Mass Select: Off</button>
+            <button id="multiDeleteToggle" class="toggle-button">Multi-Delete: Off</button>
+            <button id="scrollToBottom" class="scroll-button">▼</button>
+          </div>
         </div>
       </div>
-  
-      <!-- Stacked buttons for Select All / Deselect All -->
-      <div class="stacked-buttons">
-        <button id="selectAll" class="stacked-button">Select All</button>
-        <button id="deselectAll" class="stacked-button">Deselect All</button>
-      </div>
-  
+      <!-- END HEADER -->
+
+      <!-- Add item & list -->
       <div>
         <input type="text" id="addItem" placeholder="Enter new item (e.g., 5 cherries)" />
         <button id="addButton">Add Item</button>
@@ -262,8 +311,8 @@
       <button id="clearAll">Clear All</button>
       <button id="scrollToTop" class="scroll-button">▲</button>
     </div>
-  
-    <!-- Import/Export Container on the right -->
+
+    <!-- Import/Export & Rename Container -->
     <div id="importExportContainer">
       <button id="toggleImportExport" class="toggle-button">Import/Export</button>
       <div id="importExportPanel">
@@ -272,15 +321,16 @@
         <button id="exportButton" class="toggle-button">Export</button>
         <button id="importButton" class="toggle-button">Import</button>
       </div>
+      <button id="renameButton">Rename Title</button>
     </div>
   </div>
-  
+
   <script>
-    // Global variables and element references
-    const addItemInput = document.getElementById('addItem');
-    const addButton = document.getElementById('addButton');
+    // Global references
     const itemList = document.getElementById('itemList');
     const counter = document.getElementById('counter');
+    const addItemInput = document.getElementById('addItem');
+    const addButton = document.getElementById('addButton');
     const clearAllButton = document.getElementById('clearAll');
     const scrollToBottomButton = document.getElementById('scrollToBottom');
     const scrollToTopButton = document.getElementById('scrollToTop');
@@ -293,52 +343,72 @@
     const importExportText = document.getElementById('importExportText');
     const exportButton = document.getElementById('exportButton');
     const importButton = document.getElementById('importButton');
-  
+    const renameButton = document.getElementById('renameButton');
+    const renameableTitleEl = document.getElementById('renameableTitle');
+
     let massSelectEnabled = false;
     let multiDeleteEnabled = false;
-  
-    massSelectToggle.addEventListener('click', function() {
+
+    // Default rename config
+    const defaultTitle = "Demon's";
+    const maxChars = 20;
+
+    // Toggle import/export
+    toggleImportExport.addEventListener('click', () => {
+      importExportPanel.classList.toggle('show');
+    });
+
+    // Rename Title via prompt
+    renameButton.addEventListener('click', () => {
+      const currentName = renameableTitleEl.textContent;
+      let newName = prompt("Enter new title (max 20 characters):", currentName);
+      if (newName === null) return; // canceled
+      newName = newName.trim().slice(0, maxChars);
+      if (!newName) newName = defaultTitle;
+      renameableTitleEl.textContent = newName;
+      document.title = newName + " Checklist";
+    });
+
+    // Mass Select toggle
+    massSelectToggle.addEventListener('click', () => {
       massSelectEnabled = !massSelectEnabled;
       massSelectToggle.textContent = massSelectEnabled ? 'Mass Select: On' : 'Mass Select: Off';
     });
-  
-    multiDeleteToggle.addEventListener('click', function() {
+
+    // Multi Delete toggle
+    multiDeleteToggle.addEventListener('click', () => {
       multiDeleteEnabled = !multiDeleteEnabled;
       multiDeleteToggle.textContent = multiDeleteEnabled ? 'Multi-Delete: On' : 'Multi-Delete: Off';
     });
-  
-    // Toggle the import/export panel visibility
-    toggleImportExport.addEventListener('click', function() {
-      importExportPanel.classList.toggle('show');
-    });
-  
+
+    // Update counter
     function updateCounter() {
       const items = itemList.querySelectorAll('li');
       const completed = itemList.querySelectorAll('li input:checked').length;
       counter.textContent = `Completed ${completed} of ${items.length} items`;
     }
-  
+
+    // Create list item
     function createListItem(text, isChecked) {
       const li = document.createElement('li');
-  
+
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.checked = isChecked;
-  
+
       const span = document.createElement('span');
       span.textContent = text;
-      // Clicking the text toggles the checkbox and dispatches change event.
-      span.addEventListener('click', function() {
+      span.addEventListener('click', () => {
         checkbox.checked = !checkbox.checked;
         checkbox.dispatchEvent(new Event('change'));
       });
-  
+
       const removeButton = document.createElement('button');
       removeButton.textContent = "Remove";
       removeButton.className = 'remove';
       removeButton.disabled = !isChecked;
-  
-      removeButton.addEventListener('click', function() {
+
+      removeButton.addEventListener('click', () => {
         if (multiDeleteEnabled) {
           document.querySelectorAll('li input:checked').forEach(checkedItem => {
             checkedItem.parentElement.remove();
@@ -348,64 +418,70 @@
         }
         updateCounter();
       });
-  
-      checkbox.addEventListener('change', function() {
+
+      checkbox.addEventListener('change', () => {
         removeButton.disabled = !checkbox.checked;
         if (massSelectEnabled) {
+          // Check/uncheck all items with the same text
           document.querySelectorAll('li').forEach(item => {
             if (item.querySelector('span').textContent === text) {
-              item.querySelector('input').checked = checkbox.checked;
-              item.querySelector('button').disabled = !checkbox.checked;
+              const itemCheckbox = item.querySelector('input[type="checkbox"]');
+              const itemRemove = item.querySelector('button.remove');
+              itemCheckbox.checked = checkbox.checked;
+              itemRemove.disabled = !itemCheckbox.checked;
             }
           });
         }
         updateCounter();
       });
-  
+
       li.appendChild(checkbox);
       li.appendChild(span);
       li.appendChild(removeButton);
       itemList.appendChild(li);
     }
-  
-    // Add item(s) from the text input
+
+    // Add item(s) from input
     function addItem() {
       let text = addItemInput.value.trim();
       if (!text) return;
-  
+
       let count = 1;
       const match = text.match(/^(\d+)\s+(.*)$/);
       if (match) {
         count = parseInt(match[1], 10);
         text = match[2];
       }
-  
+
       for (let i = 0; i < count; i++) {
         createListItem(text, false);
       }
-  
+
       addItemInput.value = '';
       updateCounter();
     }
-  
+
     addButton.addEventListener('click', addItem);
     addItemInput.addEventListener('keyup', e => {
       if (e.key === 'Enter') addItem();
     });
-  
+
+    // Clear all
     clearAllButton.addEventListener('click', () => {
       itemList.innerHTML = '';
       updateCounter();
     });
-  
-    scrollToBottomButton.addEventListener('click', () =>
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-    );
-    scrollToTopButton.addEventListener('click', () =>
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    );
-  
-    selectAllButton.addEventListener('click', function() {
+
+    // Scroll
+    scrollToBottomButton.addEventListener('click', () => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+    scrollToTopButton.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Select All
+    selectAllButton.addEventListener('click', () => {
       document.querySelectorAll('#itemList li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const removeButton = item.querySelector('button.remove');
@@ -414,8 +490,9 @@
       });
       updateCounter();
     });
-  
-    deselectAllButton.addEventListener('click', function() {
+
+    // Deselect All
+    deselectAllButton.addEventListener('click', () => {
       document.querySelectorAll('#itemList li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const removeButton = item.querySelector('button.remove');
@@ -424,10 +501,10 @@
       });
       updateCounter();
     });
-  
-    // Export the checklist as plain text using a simple [x] / [ ] format
-    function exportList() {
-      let lines = [];
+
+    // Export
+    exportButton.addEventListener('click', () => {
+      const lines = [];
       itemList.querySelectorAll('li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const span = item.querySelector('span');
@@ -435,15 +512,10 @@
         lines.push(line);
       });
       importExportText.value = lines.join('\n');
-    }
-  
-    exportButton.addEventListener('click', exportList);
-  
-    // Import the checklist from text; expects one item per line, e.g.:
-    // [ ] Milk
-    // [x] Bread
-    function importList() {
-      // Clear current checklist
+    });
+
+    // Import
+    importButton.addEventListener('click', () => {
       itemList.innerHTML = '';
       const lines = importExportText.value.split('\n');
       lines.forEach(line => {
@@ -460,9 +532,7 @@
         }
       });
       updateCounter();
-    }
-  
-    importButton.addEventListener('click', importList);
+    });
   </script>
 </body>
 </html>
