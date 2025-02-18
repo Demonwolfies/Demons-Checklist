@@ -39,7 +39,7 @@
       color: #2e2e2e;
     }
 
-    /* Controls area: Mode toggle and color pickers */
+    /* Controls area: Mode toggle and color pickers (top left) */
     #controls {
       position: fixed;
       top: 10px;
@@ -70,7 +70,6 @@
     /* Only show dark pickers when not in light mode and vice versa */
     body.light-mode #darkPickers { display: none; }
     body:not(.light-mode) #lightPickers { display: none; }
-
     .color-picker {
       display: flex;
       flex-direction: column;
@@ -87,11 +86,11 @@
     */
     #colorWarningContainer {
       position: fixed;
-      top: 70px;  /* Adjust this value if your #controls height changes */
+      top: 70px;  /* Adjust if #controls height changes */
       left: 10px;
       z-index: 1000;
       min-height: 16px;
-      padding-top: 5px;  /* Extra space from the controls */
+      padding-top: 5px;
       width: auto;
       text-align: center;
       font-size: 9px;
@@ -107,6 +106,29 @@
       cursor: pointer;
     }
 
+    /* --- Top Right Buttons (Manual Save and Hard Reset) --- */
+    #topRightButtons {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
+    /* Use same styling as toggle-button for consistency */
+    #topRightButtons button {
+      padding: 8px 12px;
+      border: none;
+      background-color: #6c757d;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #topRightButtons button:hover {
+      background-color: #5a6268;
+    }
+
     /* Custom styling for color pickers */
     /* Dark mode styling */
     body:not(.light-mode) .color-picker input[type="color"] {
@@ -115,7 +137,7 @@
       appearance: none;
       width: 40px;
       height: 40px;
-      border: 2px solid #333; /* Dark grey border */
+      border: 2px solid #333;
       cursor: pointer;
       background-color: transparent;
     }
@@ -370,6 +392,10 @@
       font-size: 16px;
       box-sizing: border-box;
     }
+    /* Override textarea text color in light mode */
+    body.light-mode #importExportPanel textarea {
+      color: #000;
+    }
     /* Container for the import/export buttons */
     .import-export-buttons {
       display: flex;
@@ -407,7 +433,7 @@
   </style>
 </head>
 <body>
-  <!-- Controls: Mode Toggle and Color Pickers -->
+  <!-- Top Left Controls -->
   <div id="controls">
     <button id="modeToggle" class="toggle-button">Dark Mode</button>
     
@@ -434,8 +460,13 @@
       </div>
     </div>
   </div>
-  <!-- Warning container placed in the empty space under the grey controls box -->
+  <!-- Warning container -->
   <div id="colorWarningContainer"></div>
+  <!-- Top Right Buttons -->
+  <div id="topRightButtons">
+    <button id="manualSave">Manual Save</button>
+    <button id="hardReset">Hard Reset</button>
+  </div>
 
   <div class="app-container">
     <!-- Checklist Section -->
@@ -463,8 +494,6 @@
           </div>
         </div>
       </div>
-      <!-- END HEADER -->
-
       <!-- Add item & list -->
       <div>
         <input type="text" id="addItem" placeholder="Enter new item (e.g., 5 cherries)" />
@@ -492,6 +521,63 @@
   </div>
 
   <script>
+    // --- Local Storage Functions ---
+    function saveData() {
+      const checklistData = [];
+      document.querySelectorAll('#itemList li').forEach(item => {
+        const text = item.querySelector('span').textContent;
+        const isChecked = item.querySelector('input[type="checkbox"]').checked;
+        checklistData.push({ text, isChecked });
+      });
+      const personalization = {
+        title: document.getElementById('renameableTitle').textContent,
+        darkText: document.getElementById('darkTextAccent').value,
+        darkBorder: document.getElementById('darkBorderAccent').value,
+        lightText: document.getElementById('lightTextAccent').value,
+        lightBorder: document.getElementById('lightBorderAccent').value,
+        mode: document.body.classList.contains('light-mode') ? "light" : "dark"
+      };
+      const data = { checklistData, personalization };
+      localStorage.setItem('checklistData', JSON.stringify(data));
+    }
+
+    function loadData() {
+      const dataStr = localStorage.getItem('checklistData');
+      if (!dataStr) return;
+      try {
+        const data = JSON.parse(dataStr);
+        if (data.personalization) {
+          const p = data.personalization;
+          document.getElementById('renameableTitle').textContent = p.title;
+          document.documentElement.style.setProperty('--dark-text-accent', p.darkText);
+          document.documentElement.style.setProperty('--dark-border-accent', p.darkBorder);
+          document.documentElement.style.setProperty('--light-text-accent', p.lightText);
+          document.documentElement.style.setProperty('--light-border-accent', p.lightBorder);
+          document.getElementById('darkTextAccent').value = p.darkText;
+          document.getElementById('darkBorderAccent').value = p.darkBorder;
+          document.getElementById('lightTextAccent').value = p.lightText;
+          document.getElementById('lightBorderAccent').value = p.lightBorder;
+          if (p.mode === "light") {
+            document.body.classList.add('light-mode');
+            document.getElementById('modeToggle').textContent = "Light Mode";
+          } else {
+            document.body.classList.remove('light-mode');
+            document.getElementById('modeToggle').textContent = "Dark Mode";
+          }
+        }
+        if (data.checklistData && Array.isArray(data.checklistData)) {
+          data.checklistData.forEach(item => {
+            createListItem(item.text, item.isChecked);
+          });
+          updateCounter();
+        }
+      } catch (e) {
+        console.error("Failed to load checklist data:", e);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadData);
+
     // --- Warning Functions ---
     function getBrightness(hex) {
       hex = hex.replace('#', '');
@@ -517,23 +603,21 @@
 
     function updateColorWarnings() {
       const warningContainer = document.getElementById('colorWarningContainer');
-      warningContainer.innerHTML = ''; // Clear previous warnings
-
+      warningContainer.innerHTML = '';
       const mode = document.body.classList.contains('light-mode') ? 'light' : 'dark';
       let inputs = mode === 'light'
         ? [document.getElementById('lightTextAccent'), document.getElementById('lightBorderAccent')]
         : [document.getElementById('darkTextAccent'), document.getElementById('darkBorderAccent')];
-
       inputs.forEach(input => {
         const warningText = checkColorWarning(input.value, mode);
         if (warningText && !input.dataset.warningDismissed) {
           const warnSpan = document.createElement('span');
           warnSpan.className = 'color-warning';
           warnSpan.textContent = warningText;
-          // Clicking anywhere on the warning dismisses it
           warnSpan.addEventListener('click', () => {
             input.dataset.warningDismissed = "true";
             updateColorWarnings();
+            saveData();
           });
           warningContainer.appendChild(warnSpan);
         }
@@ -545,25 +629,26 @@
       document.documentElement.style.setProperty('--dark-text-accent', e.target.value);
       delete e.target.dataset.warningDismissed;
       updateColorWarnings();
+      saveData();
     });
     document.getElementById('darkBorderAccent').addEventListener('input', (e) => {
       document.documentElement.style.setProperty('--dark-border-accent', e.target.value);
       delete e.target.dataset.warningDismissed;
       updateColorWarnings();
+      saveData();
     });
     document.getElementById('lightTextAccent').addEventListener('input', (e) => {
       document.documentElement.style.setProperty('--light-text-accent', e.target.value);
       delete e.target.dataset.warningDismissed;
       updateColorWarnings();
+      saveData();
     });
     document.getElementById('lightBorderAccent').addEventListener('input', (e) => {
       document.documentElement.style.setProperty('--light-border-accent', e.target.value);
       delete e.target.dataset.warningDismissed;
       updateColorWarnings();
+      saveData();
     });
-
-    // Initialize warnings on page load
-    updateColorWarnings();
 
     // --- Mode toggle ---
     const modeToggle = document.getElementById('modeToggle');
@@ -571,46 +656,87 @@
       document.body.classList.toggle('light-mode');
       modeToggle.textContent = document.body.classList.contains('light-mode') ? "Light Mode" : "Dark Mode";
       updateColorWarnings();
+      saveData();
     });
 
-    // --- Import/Export and Rename Functionality ---
+    // --- Top Right Buttons ---
+    document.getElementById('manualSave').addEventListener('click', () => {
+      saveData();
+    });
+    document.getElementById('hardReset').addEventListener('click', () => {
+      if (confirm("Are you sure you want to reset to factory settings? This will revert everything back to base (rose gold defaults) and will not be saved automatically. Refresh the page if this was a mistake.")) {
+        resetToFactory();
+      }
+    });
 
-    // Export: include settings header and list items.
-    exportButton.addEventListener('click', () => {
+    function resetToFactory() {
+      // Reset title
+      document.getElementById('renameableTitle').textContent = "Demon's";
+      document.title = "Demon's Checklist";
+      // Factory defaults for colors
+      const defaultDarkText = "#f1c6b3";
+      const defaultDarkBorder = "#b76e79";
+      const defaultLightText = "#c06a57";
+      const defaultLightBorder = "#b56d5a";
+      document.documentElement.style.setProperty('--dark-text-accent', defaultDarkText);
+      document.documentElement.style.setProperty('--dark-border-accent', defaultDarkBorder);
+      document.documentElement.style.setProperty('--light-text-accent', defaultLightText);
+      document.documentElement.style.setProperty('--light-border-accent', defaultLightBorder);
+      document.getElementById('darkTextAccent').value = defaultDarkText;
+      document.getElementById('darkBorderAccent').value = defaultDarkBorder;
+      document.getElementById('lightTextAccent').value = defaultLightText;
+      document.getElementById('lightBorderAccent').value = defaultLightBorder;
+      // Reset mode to dark
+      document.body.classList.remove('light-mode');
+      modeToggle.textContent = "Dark Mode";
+      // Clear checklist items
+      document.getElementById('itemList').innerHTML = '';
+      updateCounter();
+      // Reset toggles
+      massSelectEnabled = false;
+      multiDeleteEnabled = false;
+      document.getElementById('massSelectToggle').textContent = "Mass Select: Off";
+      document.getElementById('multiDeleteToggle').textContent = "Multi-Delete: Off";
+      updateColorWarnings();
+      // Do not call saveData() here so that a refresh restores the previously saved data
+    }
+
+    // --- Import/Export and Rename Functionality ---
+    document.getElementById('exportButton').addEventListener('click', () => {
       const cs = getComputedStyle(document.documentElement);
+      const mode = document.body.classList.contains('light-mode') ? "light" : "dark";
       const settings = `[CHECKLIST_SETTINGS]
-Title: ${renameableTitleEl.textContent}
+Title: ${document.getElementById('renameableTitle').textContent}
+Mode: ${mode}
 DarkText: ${cs.getPropertyValue('--dark-text-accent').trim()}
 DarkBorder: ${cs.getPropertyValue('--dark-border-accent').trim()}
 LightText: ${cs.getPropertyValue('--light-text-accent').trim()}
 LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
 [END_SETTINGS]`;
       const lines = [];
-      itemList.querySelectorAll('li').forEach(item => {
+      document.querySelectorAll('#itemList li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const span = item.querySelector('span');
         const line = (checkbox.checked ? '[x] ' : '[ ] ') + span.textContent;
         lines.push(line);
       });
-      importExportText.value = settings + "\n" + lines.join('\n');
+      document.getElementById('importExportText').value = settings + "\n" + lines.join('\n');
+      saveData();
     });
 
-    // Copy All: copies the entire export text to clipboard without a popup.
-    const copyAllButton = document.getElementById('copyAllButton');
-    copyAllButton.addEventListener('click', () => {
-      const text = importExportText.value;
+    document.getElementById('copyAllButton').addEventListener('click', () => {
+      const text = document.getElementById('importExportText').value;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text);
       } else {
-        importExportText.select();
+        document.getElementById('importExportText').select();
         document.execCommand('copy');
       }
     });
 
-    // Import: parse settings and list items.
-    importButton.addEventListener('click', () => {
-      itemList.innerHTML = '';
-      const lines = importExportText.value.split('\n');
+    document.getElementById('importButton').addEventListener('click', () => {
+      document.getElementById('itemList').innerHTML = '';
+      const lines = document.getElementById('importExportText').value.split('\n');
       let settingsFound = false;
       let settings = {};
       let listLines = [];
@@ -641,8 +767,17 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
       }
       if (settingsFound) {
         if (settings["Title"]) {
-          renameableTitleEl.textContent = settings["Title"];
+          document.getElementById('renameableTitle').textContent = settings["Title"];
           document.title = settings["Title"] + " Checklist";
+        }
+        if (settings["Mode"]) {
+          if (settings["Mode"] === "light") {
+            document.body.classList.add('light-mode');
+            modeToggle.textContent = "Light Mode";
+          } else {
+            document.body.classList.remove('light-mode');
+            modeToggle.textContent = "Dark Mode";
+          }
         }
         if (settings["DarkText"]) {
           document.documentElement.style.setProperty('--dark-text-accent', settings["DarkText"]);
@@ -673,27 +808,27 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
         createListItem(line, isChecked);
       });
       updateCounter();
+      saveData();
     });
 
-    // Other Import/Export and Rename functionality remains unchanged.
-    toggleImportExport.addEventListener('click', () => {
-      importExportPanel.classList.toggle('show');
+    // Toggle the Import/Export panel
+    document.getElementById('toggleImportExport').addEventListener('click', () => {
+      document.getElementById('importExportPanel').classList.toggle('show');
     });
 
-    const renameButton = document.getElementById('renameButton');
-    const renameableTitleEl = document.getElementById('renameableTitle');
-    const maxChars = 10;
-    const defaultTitle = "Demon's";
-    renameButton.addEventListener('click', () => {
-      const currentName = renameableTitleEl.textContent;
+    // Rename Title functionality
+    document.getElementById('renameButton').addEventListener('click', () => {
+      const currentName = document.getElementById('renameableTitle').textContent;
       let newName = prompt("Enter new title (max 10 characters):", currentName);
       if (newName === null) return;
-      newName = newName.trim().slice(0, maxChars);
-      if (!newName) newName = defaultTitle;
-      renameableTitleEl.textContent = newName;
+      newName = newName.trim().slice(0, 10);
+      if (!newName) newName = "Demon's";
+      document.getElementById('renameableTitle').textContent = newName;
       document.title = newName + " Checklist";
+      saveData();
     });
 
+    // --- Checklist Functionality ---
     const massSelectToggle = document.getElementById('massSelectToggle');
     const multiDeleteToggle = document.getElementById('multiDeleteToggle');
     let massSelectEnabled = false;
@@ -701,15 +836,17 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
     massSelectToggle.addEventListener('click', () => {
       massSelectEnabled = !massSelectEnabled;
       massSelectToggle.textContent = massSelectEnabled ? 'Mass Select: On' : 'Mass Select: Off';
+      saveData();
     });
     multiDeleteToggle.addEventListener('click', () => {
       multiDeleteEnabled = !multiDeleteEnabled;
       multiDeleteToggle.textContent = multiDeleteEnabled ? 'Multi-Delete: On' : 'Multi-Delete: Off';
+      saveData();
     });
 
     function updateCounter() {
-      const items = document.getElementById('itemList').querySelectorAll('li');
-      const completed = document.getElementById('itemList').querySelectorAll('li input:checked').length;
+      const items = document.querySelectorAll('#itemList li');
+      const completed = document.querySelectorAll('#itemList li input:checked').length;
       document.getElementById('counter').textContent = `Completed ${completed} of ${items.length} items`;
     }
 
@@ -730,18 +867,19 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
       removeButton.disabled = !isChecked;
       removeButton.addEventListener('click', () => {
         if (multiDeleteEnabled) {
-          document.querySelectorAll('li input:checked').forEach(checkedItem => {
+          document.querySelectorAll('#itemList li input:checked').forEach(checkedItem => {
             checkedItem.parentElement.remove();
           });
         } else {
           li.remove();
         }
         updateCounter();
+        saveData();
       });
       checkbox.addEventListener('change', () => {
         removeButton.disabled = !checkbox.checked;
         if (massSelectEnabled) {
-          document.querySelectorAll('li').forEach(item => {
+          document.querySelectorAll('#itemList li').forEach(item => {
             if (item.querySelector('span').textContent === text) {
               const itemCheckbox = item.querySelector('input[type="checkbox"]');
               const itemRemove = item.querySelector('button.remove');
@@ -751,6 +889,7 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
           });
         }
         updateCounter();
+        saveData();
       });
       li.appendChild(checkbox);
       li.appendChild(span);
@@ -773,25 +912,24 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
       }
       addItemInput.value = '';
       updateCounter();
+      saveData();
     }
 
     document.getElementById('addButton').addEventListener('click', addItem);
     document.getElementById('addItem').addEventListener('keyup', e => {
       if (e.key === 'Enter') addItem();
     });
-
     document.getElementById('clearAll').addEventListener('click', () => {
       document.getElementById('itemList').innerHTML = '';
       updateCounter();
+      saveData();
     });
-
     document.getElementById('scrollToBottom').addEventListener('click', () => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     });
     document.getElementById('scrollToTop').addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-
     document.getElementById('selectAll').addEventListener('click', () => {
       document.querySelectorAll('#itemList li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
@@ -800,8 +938,8 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
         removeButton.disabled = false;
       });
       updateCounter();
+      saveData();
     });
-
     document.getElementById('deselectAll').addEventListener('click', () => {
       document.querySelectorAll('#itemList li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
@@ -810,25 +948,7 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
         removeButton.disabled = true;
       });
       updateCounter();
-    });
-    
-    document.getElementById('exportButton').addEventListener('click', () => {
-      const cs = getComputedStyle(document.documentElement);
-      const settings = `[CHECKLIST_SETTINGS]
-Title: ${renameableTitleEl.textContent}
-DarkText: ${cs.getPropertyValue('--dark-text-accent').trim()}
-DarkBorder: ${cs.getPropertyValue('--dark-border-accent').trim()}
-LightText: ${cs.getPropertyValue('--light-text-accent').trim()}
-LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
-[END_SETTINGS]`;
-      const lines = [];
-      document.querySelectorAll('#itemList li').forEach(item => {
-        const checkbox = item.querySelector('input[type="checkbox"]');
-        const span = item.querySelector('span');
-        const line = (checkbox.checked ? '[x] ' : '[ ] ') + span.textContent;
-        lines.push(line);
-      });
-      document.getElementById('importExportText').value = settings + "\n" + lines.join('\n');
+      saveData();
     });
   </script>
 </body>
