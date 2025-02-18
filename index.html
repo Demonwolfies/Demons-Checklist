@@ -2,12 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- Responsive meta tag for mobile devices -->
+  <!-- Responsive meta tag -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Demon's Checklist</title>
   <link href="https://fonts.googleapis.com/css2?family=Gabriola&display=swap" rel="stylesheet">
   <style>
-    /* General Body Styling */
+    /* Define accent variables for each mode */
+    :root {
+      --dark-text-accent: #f1c6b3;   /* Used in dark mode for headings, counter, rename text */
+      --dark-border-accent: #b76e79; /* Used in dark mode for outlines, add/clear buttons, rename border */
+      
+      --light-text-accent: #c06a57;  /* Light mode text accent */
+      --light-border-accent: #b56d5a;/* Light mode border accent */
+    }
+
+    /* Base styles (dark mode by default) */
     body {
       background-color: #2e2e2e;
       color: #e4e7eb;
@@ -15,7 +24,126 @@
       margin: 0;
       padding: 20px;
     }
-    /* App container holds the checklist and the import/export container */
+    /* Light mode overrides */
+    body.light-mode {
+      background-color: #f5f5f5;
+      color: #2e2e2e;
+    }
+    body.light-mode #checklistContainer,
+    body.light-mode #importExportPanel {
+      background-color: #ffffff;
+    }
+    body.light-mode #addItem {
+      background-color: #fff;
+      border: 1px solid #555;
+      color: #2e2e2e;
+    }
+
+    /* Controls area: Mode toggle and color pickers */
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      background: rgba(0,0,0,0.1);
+      padding: 5px;
+      border-radius: 4px;
+    }
+    #modeToggle {
+      padding: 8px 12px;
+      border: none;
+      background-color: #6c757d;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #modeToggle:hover {
+      background-color: #5a6268;
+    }
+    /* Color picker controls */
+    .pickers { display: flex; gap: 10px; }
+    /* Only show dark pickers when not in light mode and vice versa */
+    body.light-mode #darkPickers { display: none; }
+    body:not(.light-mode) #lightPickers { display: none; }
+
+    .color-picker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 10px;
+    }
+    /* In dark mode, label text becomes white */
+    body:not(.light-mode) .color-picker label { color: white; }
+    body.light-mode .color-picker label { color: #333; }
+
+    /* --- Warning Container ---
+         Positioned below the controls with extra top padding and smaller text.
+         Clicking anywhere on a warning dismisses it.
+    */
+    #colorWarningContainer {
+      position: fixed;
+      top: 70px;  /* Adjust this value if your #controls height changes */
+      left: 10px;
+      z-index: 1000;
+      min-height: 16px;
+      padding-top: 5px;  /* Extra space from the controls */
+      width: auto;
+      text-align: center;
+      font-size: 9px;
+      color: red;
+    }
+    .color-warning {
+      display: inline-block;
+      background: #ffc0c0;
+      color: red;
+      padding: 2px 3px;
+      border-radius: 3px;
+      margin: 0 2px;
+      cursor: pointer;
+    }
+
+    /* Custom styling for color pickers */
+    /* Dark mode styling */
+    body:not(.light-mode) .color-picker input[type="color"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      width: 40px;
+      height: 40px;
+      border: 2px solid #333; /* Dark grey border */
+      cursor: pointer;
+      background-color: transparent;
+    }
+    body:not(.light-mode) .color-picker input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    body:not(.light-mode) .color-picker input[type="color"]::-webkit-color-swatch {
+      border: none;
+    }
+    /* Light mode styling */
+    body.light-mode .color-picker input[type="color"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      width: 40px;
+      height: 40px;
+      border: 2px solid white;
+      cursor: pointer;
+      background-color: transparent;
+    }
+    body.light-mode .color-picker input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    body.light-mode .color-picker input[type="color"]::-webkit-color-swatch {
+      border: none;
+    }
+
+    /* App container */
     .app-container {
       display: flex;
       justify-content: center;
@@ -23,47 +151,54 @@
       margin: 50px auto;
       flex-wrap: wrap;
     }
-    /* Checklist Container */
+    /* Checklist container */
     #checklistContainer {
       width: 500px;
       padding: 20px;
-      border: 2px solid #b76e79; /* Rose gold outline */
+      border: 2px solid var(--dark-border-accent);
       border-radius: 8px;
       box-shadow: 2px 2px 12px rgba(0,0,0,0.1);
       background-color: #2e2e2e;
       position: relative;
     }
-
-    /* We split the header into a left column (title + select buttons)
-       and a right column (counter + mass select + multi delete + arrow).
-       They are placed side by side at the top. */
-    .header-container {
-      display: flex;
-      justify-content: space-between; /* left col on left, right col on right */
-      align-items: flex-start;       /* top-align them */
-      margin-bottom: 20px;
+    body.light-mode #checklistContainer {
+      border-color: var(--light-border-accent);
     }
 
-    /* Left column: Title and "Select All" / "Deselect All" stacked */
+    /* Header area */
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
     .header-left-col {
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
-    /* Title styling */
+    /* Headings and counter: use mode-specific accent */
+    body:not(.light-mode) h2,
+    body:not(.light-mode) #renameableTitle,
+    body:not(.light-mode) #counter {
+      color: var(--dark-text-accent);
+    }
+    body.light-mode h2,
+    body.light-mode #renameableTitle,
+    body.light-mode #counter {
+      color: var(--light-text-accent);
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
     h2 {
       margin: 0;
       font-family: 'Gabriola', sans-serif;
-      color: #f1c6b3;
       font-size: 2em;
       line-height: 1.2;
     }
-    #renameableTitle {
-      color: #f1c6b3;
-      cursor: pointer;
-    }
+    #renameableTitle { cursor: pointer; }
 
-    /* The stacked select/deselect buttons just under the title */
+    /* Stacked buttons */
     .stacked-buttons {
       display: flex;
       flex-direction: column;
@@ -84,26 +219,19 @@
       background-color: #5a6268;
     }
 
-    /* Right column: "Completed 0 of 0 items" plus the row of mass select, multi delete, arrow */
+    /* Right column */
     .header-right-col {
       display: flex;
       flex-direction: column;
-      align-items: flex-end; /* push content to the right edge */
+      align-items: flex-end;
       gap: 8px;
     }
-    /* The row with mass select, multi delete, arrow */
     .button-row {
       display: flex;
       gap: 5px;
       align-items: center;
     }
-    /* The counter at the top of the right column */
-    #counter {
-      font-size: 0.9em;
-      white-space: nowrap;
-      color: #e4e7eb;
-    }
-
+    #counter { font-size: 0.9em; white-space: nowrap; }
     .toggle-button {
       padding: 8px 12px;
       border: none;
@@ -113,9 +241,7 @@
       cursor: pointer;
       font-size: 14px;
     }
-    .toggle-button:hover {
-      background-color: #5a6268;
-    }
+    .toggle-button:hover { background-color: #5a6268; }
     .scroll-button {
       padding: 8px 12px;
       border: none;
@@ -126,15 +252,10 @@
       font-size: 16px;
       line-height: 1;
     }
-    .scroll-button:hover {
-      background-color: #5a6268;
-    }
+    .scroll-button:hover { background-color: #5a6268; }
 
     /* List styling */
-    ul {
-      list-style: none;
-      padding: 0;
-    }
+    ul { list-style: none; padding: 0; }
     li {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
@@ -142,12 +263,8 @@
       align-items: center;
       margin-bottom: 10px;
     }
-    li input[type="checkbox"] {
-      cursor: pointer;
-    }
-    li input[type="checkbox"]:checked + span {
-      text-decoration: line-through;
-    }
+    li input[type="checkbox"] { cursor: pointer; }
+    li input[type="checkbox"]:checked + span { text-decoration: line-through; }
     li span {
       overflow-wrap: break-word;
       white-space: normal;
@@ -162,15 +279,13 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    li button.remove:hover {
-      background-color: #c82333;
-    }
+    li button.remove:hover { background-color: #c82333; }
     li button.remove:disabled {
       background-color: #bbb;
       cursor: not-allowed;
     }
 
-    /* Add item input + button */
+    /* Add item input & button */
     #addItem {
       width: calc(100% - 90px);
       padding: 10px;
@@ -184,14 +299,14 @@
     #addButton {
       padding: 10px 20px;
       border: none;
-      background-color: #b76e79;
+      background-color: var(--dark-border-accent);
       color: white;
       border-radius: 4px;
       cursor: pointer;
     }
-    #addButton:hover {
-      background-color: #9d4f64;
-    }
+    body.light-mode #addButton { background-color: var(--light-border-accent); }
+    #addButton:hover { background-color: #9d4f64; }
+    body.light-mode #addButton:hover { background-color: #cc8a75; }
 
     /* Clear All button */
     #clearAll {
@@ -199,20 +314,16 @@
       padding: 10px;
       width: 100%;
       border: none;
-      background-color: #b76e79;
+      background-color: var(--dark-border-accent);
       color: white;
       border-radius: 4px;
       cursor: pointer;
     }
-    #clearAll:hover {
-      background-color: #9d4f64;
-    }
+    body.light-mode #clearAll { background-color: var(--light-border-accent); }
+    #clearAll:hover { background-color: #9d4f64; }
+    body.light-mode #clearAll:hover { background-color: #cc8a75; }
 
-    #scrollToTop {
-      display: block;
-      margin-top: 20px;
-      margin-bottom: 20px;
-    }
+    #scrollToTop { display: block; margin-top: 20px; margin-bottom: 20px; }
 
     /* Import/Export Container */
     #importExportContainer {
@@ -224,25 +335,27 @@
     }
     #toggleImportExport {
       align-self: flex-end;
-      border: 2px solid #b76e79;
+      border: 2px solid var(--dark-border-accent);
     }
+    body.light-mode #toggleImportExport { border-color: var(--light-border-accent); }
     #importExportPanel {
       display: none;
-      border: 2px solid #b76e79;
+      border: 2px solid var(--dark-border-accent);
       border-radius: 8px;
       padding: 20px;
       box-shadow: 2px 2px 12px rgba(0,0,0,0.1);
       background-color: #2e2e2e;
       color: #e4e7eb;
     }
-    #importExportPanel.show {
-      display: block;
-    }
+    body.light-mode #importExportPanel { border-color: var(--light-border-accent); }
+    #importExportPanel.show { display: block; }
     #importExportPanel h3 {
       margin-top: 0;
       font-family: 'Gabriola', sans-serif;
-      color: #f1c6b3;
-      font-size: 2em;
+      color: var(--dark-text-accent);
+    }
+    body.light-mode #importExportPanel h3 {
+      color: var(--light-text-accent);
     }
     #importExportPanel textarea {
       width: 100%;
@@ -257,29 +370,79 @@
       font-size: 16px;
       box-sizing: border-box;
     }
-    /* "Rename Title" button for prompt-based rename approach */
+    /* Container for the import/export buttons */
+    .import-export-buttons {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    /* Make the Copy All button smaller */
+    .small-button {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    /* Rename Title button */
     #renameButton {
       padding: 4px 8px;
       font-size: 12px;
-      border: 1px solid #b76e79;
+      border: 1px solid var(--dark-border-accent);
       border-radius: 4px;
       background-color: transparent;
-      color: #f1c6b3;
+      color: var(--dark-text-accent);
       cursor: pointer;
     }
+    body.light-mode #renameButton {
+      border: 1px solid var(--light-border-accent);
+      color: var(--light-text-accent);
+    }
     #renameButton:hover {
-      background-color: #b76e79;
+      background-color: var(--dark-border-accent);
       color: white;
+    }
+    body.light-mode #renameButton:hover {
+      background-color: #e0e0e0;
+      color: var(--light-text-accent);
     }
   </style>
 </head>
 <body>
+  <!-- Controls: Mode Toggle and Color Pickers -->
+  <div id="controls">
+    <button id="modeToggle" class="toggle-button">Dark Mode</button>
+    
+    <!-- Dark Mode Color Pickers -->
+    <div id="darkPickers" class="pickers">
+      <div class="color-picker">
+        <label for="darkTextAccent">Dark Text</label>
+        <input type="color" id="darkTextAccent" value="#f1c6b3" title="Dark Mode Text Accent">
+      </div>
+      <div class="color-picker">
+        <label for="darkBorderAccent">Dark Border</label>
+        <input type="color" id="darkBorderAccent" value="#b76e79" title="Dark Mode Border Accent">
+      </div>
+    </div>
+    <!-- Light Mode Color Pickers -->
+    <div id="lightPickers" class="pickers">
+      <div class="color-picker">
+        <label for="lightTextAccent">Light Text</label>
+        <input type="color" id="lightTextAccent" value="#c06a57" title="Light Mode Text Accent">
+      </div>
+      <div class="color-picker">
+        <label for="lightBorderAccent">Light Border</label>
+        <input type="color" id="lightBorderAccent" value="#b56d5a" title="Light Mode Border Accent">
+      </div>
+    </div>
+  </div>
+  <!-- Warning container placed in the empty space under the grey controls box -->
+  <div id="colorWarningContainer"></div>
+
   <div class="app-container">
     <!-- Checklist Section -->
     <div id="checklistContainer">
       <!-- HEADER -->
       <div class="header-container">
-        <!-- LEFT COLUMN: Title & stacked select/deselect -->
+        <!-- LEFT COLUMN: Title & select/deselect buttons -->
         <div class="header-left-col">
           <h2>
             <span id="renameableTitle">Demon's</span><br>
@@ -290,7 +453,7 @@
             <button id="deselectAll" class="stacked-button">Deselect All</button>
           </div>
         </div>
-        <!-- RIGHT COLUMN: Counter on top, then mass select / multi-delete / arrow -->
+        <!-- RIGHT COLUMN: Counter and toggle buttons -->
         <div class="header-right-col">
           <div id="counter">Completed 0 of 0 items</div>
           <div class="button-row">
@@ -318,96 +481,253 @@
       <div id="importExportPanel">
         <h3>Import/Export</h3>
         <textarea id="importExportText" rows="10"></textarea>
-        <button id="exportButton" class="toggle-button">Export</button>
-        <button id="importButton" class="toggle-button">Import</button>
+        <div class="import-export-buttons">
+          <button id="exportButton" class="toggle-button">Export</button>
+          <button id="importButton" class="toggle-button">Import</button>
+          <button id="copyAllButton" class="toggle-button small-button">Copy All</button>
+        </div>
       </div>
       <button id="renameButton">Rename Title</button>
     </div>
   </div>
 
   <script>
-    // Global references
-    const itemList = document.getElementById('itemList');
-    const counter = document.getElementById('counter');
-    const addItemInput = document.getElementById('addItem');
-    const addButton = document.getElementById('addButton');
-    const clearAllButton = document.getElementById('clearAll');
-    const scrollToBottomButton = document.getElementById('scrollToBottom');
-    const scrollToTopButton = document.getElementById('scrollToTop');
-    const massSelectToggle = document.getElementById('massSelectToggle');
-    const multiDeleteToggle = document.getElementById('multiDeleteToggle');
-    const selectAllButton = document.getElementById('selectAll');
-    const deselectAllButton = document.getElementById('deselectAll');
-    const toggleImportExport = document.getElementById('toggleImportExport');
-    const importExportPanel = document.getElementById('importExportPanel');
-    const importExportText = document.getElementById('importExportText');
-    const exportButton = document.getElementById('exportButton');
-    const importButton = document.getElementById('importButton');
-    const renameButton = document.getElementById('renameButton');
-    const renameableTitleEl = document.getElementById('renameableTitle');
+    // --- Warning Functions ---
+    function getBrightness(hex) {
+      hex = hex.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return (r * 299 + g * 587 + b * 114) / 1000;
+    }
 
-    let massSelectEnabled = false;
-    let multiDeleteEnabled = false;
+    function checkColorWarning(colorValue, mode) {
+      const brightness = getBrightness(colorValue);
+      if (mode === 'dark') {
+        if (brightness < 70) {
+          return "Warning: Color may be too dark for dark mode.";
+        }
+      } else if (mode === 'light') {
+        if (brightness > 200) {
+          return "Warning: Color may be too bright for light mode.";
+        }
+      }
+      return "";
+    }
 
-    // Default rename config
-    const defaultTitle = "Demon's";
-    const maxChars = 10; // changed to 15 from 20 - then from 15 to 10
+    function updateColorWarnings() {
+      const warningContainer = document.getElementById('colorWarningContainer');
+      warningContainer.innerHTML = ''; // Clear previous warnings
 
-    // Toggle import/export
+      const mode = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+      let inputs = mode === 'light'
+        ? [document.getElementById('lightTextAccent'), document.getElementById('lightBorderAccent')]
+        : [document.getElementById('darkTextAccent'), document.getElementById('darkBorderAccent')];
+
+      inputs.forEach(input => {
+        const warningText = checkColorWarning(input.value, mode);
+        if (warningText && !input.dataset.warningDismissed) {
+          const warnSpan = document.createElement('span');
+          warnSpan.className = 'color-warning';
+          warnSpan.textContent = warningText;
+          // Clicking anywhere on the warning dismisses it
+          warnSpan.addEventListener('click', () => {
+            input.dataset.warningDismissed = "true";
+            updateColorWarnings();
+          });
+          warningContainer.appendChild(warnSpan);
+        }
+      });
+    }
+
+    // --- Update color pickers with warnings ---
+    document.getElementById('darkTextAccent').addEventListener('input', (e) => {
+      document.documentElement.style.setProperty('--dark-text-accent', e.target.value);
+      delete e.target.dataset.warningDismissed;
+      updateColorWarnings();
+    });
+    document.getElementById('darkBorderAccent').addEventListener('input', (e) => {
+      document.documentElement.style.setProperty('--dark-border-accent', e.target.value);
+      delete e.target.dataset.warningDismissed;
+      updateColorWarnings();
+    });
+    document.getElementById('lightTextAccent').addEventListener('input', (e) => {
+      document.documentElement.style.setProperty('--light-text-accent', e.target.value);
+      delete e.target.dataset.warningDismissed;
+      updateColorWarnings();
+    });
+    document.getElementById('lightBorderAccent').addEventListener('input', (e) => {
+      document.documentElement.style.setProperty('--light-border-accent', e.target.value);
+      delete e.target.dataset.warningDismissed;
+      updateColorWarnings();
+    });
+
+    // Initialize warnings on page load
+    updateColorWarnings();
+
+    // --- Mode toggle ---
+    const modeToggle = document.getElementById('modeToggle');
+    modeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      modeToggle.textContent = document.body.classList.contains('light-mode') ? "Light Mode" : "Dark Mode";
+      updateColorWarnings();
+    });
+
+    // --- Import/Export and Rename Functionality ---
+
+    // Export: include settings header and list items.
+    exportButton.addEventListener('click', () => {
+      const cs = getComputedStyle(document.documentElement);
+      const settings = `[CHECKLIST_SETTINGS]
+Title: ${renameableTitleEl.textContent}
+DarkText: ${cs.getPropertyValue('--dark-text-accent').trim()}
+DarkBorder: ${cs.getPropertyValue('--dark-border-accent').trim()}
+LightText: ${cs.getPropertyValue('--light-text-accent').trim()}
+LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
+[END_SETTINGS]`;
+      const lines = [];
+      itemList.querySelectorAll('li').forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        const span = item.querySelector('span');
+        const line = (checkbox.checked ? '[x] ' : '[ ] ') + span.textContent;
+        lines.push(line);
+      });
+      importExportText.value = settings + "\n" + lines.join('\n');
+    });
+
+    // Copy All: copies the entire export text to clipboard without a popup.
+    const copyAllButton = document.getElementById('copyAllButton');
+    copyAllButton.addEventListener('click', () => {
+      const text = importExportText.value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+      } else {
+        importExportText.select();
+        document.execCommand('copy');
+      }
+    });
+
+    // Import: parse settings and list items.
+    importButton.addEventListener('click', () => {
+      itemList.innerHTML = '';
+      const lines = importExportText.value.split('\n');
+      let settingsFound = false;
+      let settings = {};
+      let listLines = [];
+      let inSettings = false;
+      for (let line of lines) {
+        line = line.trim();
+        if (line === "[CHECKLIST_SETTINGS]") {
+          inSettings = true;
+          settingsFound = true;
+          continue;
+        }
+        if (line === "[END_SETTINGS]") {
+          inSettings = false;
+          continue;
+        }
+        if (inSettings) {
+          const parts = line.split(':');
+          if (parts.length >= 2) {
+            const key = parts[0].trim();
+            const value = parts.slice(1).join(':').trim();
+            settings[key] = value;
+          }
+        } else {
+          if (line !== "") {
+            listLines.push(line);
+          }
+        }
+      }
+      if (settingsFound) {
+        if (settings["Title"]) {
+          renameableTitleEl.textContent = settings["Title"];
+          document.title = settings["Title"] + " Checklist";
+        }
+        if (settings["DarkText"]) {
+          document.documentElement.style.setProperty('--dark-text-accent', settings["DarkText"]);
+          document.getElementById('darkTextAccent').value = settings["DarkText"];
+        }
+        if (settings["DarkBorder"]) {
+          document.documentElement.style.setProperty('--dark-border-accent', settings["DarkBorder"]);
+          document.getElementById('darkBorderAccent').value = settings["DarkBorder"];
+        }
+        if (settings["LightText"]) {
+          document.documentElement.style.setProperty('--light-text-accent', settings["LightText"]);
+          document.getElementById('lightTextAccent').value = settings["LightText"];
+        }
+        if (settings["LightBorder"]) {
+          document.documentElement.style.setProperty('--light-border-accent', settings["LightBorder"]);
+          document.getElementById('lightBorderAccent').value = settings["LightBorder"];
+        }
+        updateColorWarnings();
+      }
+      listLines.forEach(line => {
+        let isChecked = false;
+        if (line.startsWith('[x]')) {
+          isChecked = true;
+          line = line.substring(3).trim();
+        } else if (line.startsWith('[ ]')) {
+          line = line.substring(3).trim();
+        }
+        createListItem(line, isChecked);
+      });
+      updateCounter();
+    });
+
+    // Other Import/Export and Rename functionality remains unchanged.
     toggleImportExport.addEventListener('click', () => {
       importExportPanel.classList.toggle('show');
     });
 
-    // Rename Title via prompt (10-character limit)
+    const renameButton = document.getElementById('renameButton');
+    const renameableTitleEl = document.getElementById('renameableTitle');
+    const maxChars = 10;
+    const defaultTitle = "Demon's";
     renameButton.addEventListener('click', () => {
       const currentName = renameableTitleEl.textContent;
       let newName = prompt("Enter new title (max 10 characters):", currentName);
-      if (newName === null) return; // canceled
+      if (newName === null) return;
       newName = newName.trim().slice(0, maxChars);
       if (!newName) newName = defaultTitle;
       renameableTitleEl.textContent = newName;
       document.title = newName + " Checklist";
     });
 
-    // Mass Select toggle
+    const massSelectToggle = document.getElementById('massSelectToggle');
+    const multiDeleteToggle = document.getElementById('multiDeleteToggle');
+    let massSelectEnabled = false;
+    let multiDeleteEnabled = false;
     massSelectToggle.addEventListener('click', () => {
       massSelectEnabled = !massSelectEnabled;
       massSelectToggle.textContent = massSelectEnabled ? 'Mass Select: On' : 'Mass Select: Off';
     });
-
-    // Multi Delete toggle
     multiDeleteToggle.addEventListener('click', () => {
       multiDeleteEnabled = !multiDeleteEnabled;
       multiDeleteToggle.textContent = multiDeleteEnabled ? 'Multi-Delete: On' : 'Multi-Delete: Off';
     });
 
-    // Update counter
     function updateCounter() {
-      const items = itemList.querySelectorAll('li');
-      const completed = itemList.querySelectorAll('li input:checked').length;
-      counter.textContent = `Completed ${completed} of ${items.length} items`;
+      const items = document.getElementById('itemList').querySelectorAll('li');
+      const completed = document.getElementById('itemList').querySelectorAll('li input:checked').length;
+      document.getElementById('counter').textContent = `Completed ${completed} of ${items.length} items`;
     }
 
-    // Create list item
     function createListItem(text, isChecked) {
       const li = document.createElement('li');
-
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.checked = isChecked;
-
       const span = document.createElement('span');
       span.textContent = text;
       span.addEventListener('click', () => {
         checkbox.checked = !checkbox.checked;
         checkbox.dispatchEvent(new Event('change'));
       });
-
       const removeButton = document.createElement('button');
       removeButton.textContent = "Remove";
       removeButton.className = 'remove';
       removeButton.disabled = !isChecked;
-
       removeButton.addEventListener('click', () => {
         if (multiDeleteEnabled) {
           document.querySelectorAll('li input:checked').forEach(checkedItem => {
@@ -418,11 +738,9 @@
         }
         updateCounter();
       });
-
       checkbox.addEventListener('change', () => {
         removeButton.disabled = !checkbox.checked;
         if (massSelectEnabled) {
-          // Check/uncheck all items with the same text
           document.querySelectorAll('li').forEach(item => {
             if (item.querySelector('span').textContent === text) {
               const itemCheckbox = item.querySelector('input[type="checkbox"]');
@@ -434,54 +752,47 @@
         }
         updateCounter();
       });
-
       li.appendChild(checkbox);
       li.appendChild(span);
       li.appendChild(removeButton);
-      itemList.appendChild(li);
+      document.getElementById('itemList').appendChild(li);
     }
 
-    // Add item(s) from input
     function addItem() {
+      const addItemInput = document.getElementById('addItem');
       let text = addItemInput.value.trim();
       if (!text) return;
-
       let count = 1;
       const match = text.match(/^(\d+)\s+(.*)$/);
       if (match) {
         count = parseInt(match[1], 10);
         text = match[2];
       }
-
       for (let i = 0; i < count; i++) {
         createListItem(text, false);
       }
-
       addItemInput.value = '';
       updateCounter();
     }
 
-    addButton.addEventListener('click', addItem);
-    addItemInput.addEventListener('keyup', e => {
+    document.getElementById('addButton').addEventListener('click', addItem);
+    document.getElementById('addItem').addEventListener('keyup', e => {
       if (e.key === 'Enter') addItem();
     });
 
-    // Clear all
-    clearAllButton.addEventListener('click', () => {
-      itemList.innerHTML = '';
+    document.getElementById('clearAll').addEventListener('click', () => {
+      document.getElementById('itemList').innerHTML = '';
       updateCounter();
     });
 
-    // Scroll
-    scrollToBottomButton.addEventListener('click', () => {
+    document.getElementById('scrollToBottom').addEventListener('click', () => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     });
-    scrollToTopButton.addEventListener('click', () => {
+    document.getElementById('scrollToTop').addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // Select All
-    selectAllButton.addEventListener('click', () => {
+    document.getElementById('selectAll').addEventListener('click', () => {
       document.querySelectorAll('#itemList li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const removeButton = item.querySelector('button.remove');
@@ -491,8 +802,7 @@
       updateCounter();
     });
 
-    // Deselect All
-    deselectAllButton.addEventListener('click', () => {
+    document.getElementById('deselectAll').addEventListener('click', () => {
       document.querySelectorAll('#itemList li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const removeButton = item.querySelector('button.remove');
@@ -501,37 +811,24 @@
       });
       updateCounter();
     });
-
-    // Export
-    exportButton.addEventListener('click', () => {
+    
+    document.getElementById('exportButton').addEventListener('click', () => {
+      const cs = getComputedStyle(document.documentElement);
+      const settings = `[CHECKLIST_SETTINGS]
+Title: ${renameableTitleEl.textContent}
+DarkText: ${cs.getPropertyValue('--dark-text-accent').trim()}
+DarkBorder: ${cs.getPropertyValue('--dark-border-accent').trim()}
+LightText: ${cs.getPropertyValue('--light-text-accent').trim()}
+LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
+[END_SETTINGS]`;
       const lines = [];
-      itemList.querySelectorAll('li').forEach(item => {
+      document.querySelectorAll('#itemList li').forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const span = item.querySelector('span');
         const line = (checkbox.checked ? '[x] ' : '[ ] ') + span.textContent;
         lines.push(line);
       });
-      importExportText.value = lines.join('\n');
-    });
-
-    // Import
-    importButton.addEventListener('click', () => {
-      itemList.innerHTML = '';
-      const lines = importExportText.value.split('\n');
-      lines.forEach(line => {
-        line = line.trim();
-        if (line) {
-          let isChecked = false;
-          if (line.startsWith('[x]')) {
-            isChecked = true;
-            line = line.substring(3).trim();
-          } else if (line.startsWith('[ ]')) {
-            line = line.substring(3).trim();
-          }
-          createListItem(line, isChecked);
-        }
-      });
-      updateCounter();
+      document.getElementById('importExportText').value = settings + "\n" + lines.join('\n');
     });
   </script>
 </body>
