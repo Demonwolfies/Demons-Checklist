@@ -1,12 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <!-- Responsive meta tag -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Demon's Checklist</title>
-  <link href="https://fonts.googleapis.com/css2?family=Gabriola&display=swap" rel="stylesheet">
-  <style>
+<meta charset="utf-8"/>
+<!-- Responsive meta tag -->
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport"/>
+<title>Demon's Checklist</title>
+<link href="https://fonts.googleapis.com/css2?family=Gabriola&amp;display=swap" rel="stylesheet"/>
+<style>
     /* Define accent variables for each mode */
     :root {
       --dark-text-accent: #f1c6b3;   /* Used in dark mode for headings, counter, rename text */
@@ -76,9 +77,9 @@
       align-items: center;
       font-size: 10px;
     }
-    /* In dark mode, label text becomes white */
-    body:not(.light-mode) .color-picker label { color: white; }
-    body.light-mode .color-picker label { color: #333; }
+    .color-picker label {
+  color: white;
+}
 
     /* --- Warning Container ---
          Positioned below the controls with extra top padding and smaller text.
@@ -430,97 +431,120 @@
       background-color: #e0e0e0;
       color: var(--light-text-accent);
     }
-  </style>
-</head>
-<body>
-  <!-- Top Left Controls -->
-  <div id="controls">
-    <button id="modeToggle" class="toggle-button">Dark Mode</button>
-    
-    <!-- Dark Mode Color Pickers -->
-    <div id="darkPickers" class="pickers">
-      <div class="color-picker">
-        <label for="darkTextAccent">Dark Text</label>
-        <input type="color" id="darkTextAccent" value="#f1c6b3" title="Dark Mode Text Accent">
-      </div>
-      <div class="color-picker">
-        <label for="darkBorderAccent">Dark Border</label>
-        <input type="color" id="darkBorderAccent" value="#b76e79" title="Dark Mode Border Accent">
-      </div>
-    </div>
-    <!-- Light Mode Color Pickers -->
-    <div id="lightPickers" class="pickers">
-      <div class="color-picker">
-        <label for="lightTextAccent">Light Text</label>
-        <input type="color" id="lightTextAccent" value="#c06a57" title="Light Mode Text Accent">
-      </div>
-      <div class="color-picker">
-        <label for="lightBorderAccent">Light Border</label>
-        <input type="color" id="lightBorderAccent" value="#b56d5a" title="Light Mode Border Accent">
-      </div>
-    </div>
-  </div>
-  <!-- Warning container -->
-  <div id="colorWarningContainer"></div>
-  <!-- Top Right Buttons -->
-  <div id="topRightButtons">
-    <button id="manualSave">Manual Save</button>
-    <button id="hardReset">Hard Reset</button>
-  </div>
+  
+#closeSettings {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #dc3545;
+}
+#closeSettings:hover {
+  background-color: #c82333;
+}
 
-  <div class="app-container">
-    <!-- Checklist Section -->
-    <div id="checklistContainer">
-      <!-- HEADER -->
-      <div class="header-container">
-        <!-- LEFT COLUMN: Title & select/deselect buttons -->
-        <div class="header-left-col">
-          <h2>
-            <span id="renameableTitle">Demon's</span><br>
+  body.zoomed {
+    transform-origin: top left;
+    transition: transform 0.2s ease;
+  }
+</style>
+</head>
+<body><button class="toggle-button" id="settingsToggle">⚙️ Settings</button><div id="settingsPanel" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; background-color: rgba(46,46,46,0.95); color: white; border: none; padding: 30px; overflow-y: auto; max-width: none;">
+<button class="toggle-button" id="closeSettings">✖ Close</button><h3 style="margin-top:0; font-family: 'Gabriola', sans-serif; color: var(--dark-text-accent);">Settings</h3>
+<div class="section">
+<h4>Appearance</h4>
+<button class="toggle-button" id="modeToggle">Dark Mode</button>
+<div class="pickers" id="darkPickers">
+<div class="color-picker">
+<label for="darkTextAccent">Dark Text</label>
+<input id="darkTextAccent" type="color" value="#f1c6b3"/>
+</div>
+<div class="color-picker">
+<label for="darkBorderAccent">Dark Border</label>
+<input id="darkBorderAccent" type="color" value="#b76e79"/>
+</div>
+</div>
+<div class="pickers" id="lightPickers">
+<div class="color-picker">
+<label for="lightTextAccent">Light Text</label>
+<input id="lightTextAccent" type="color" value="#c06a57"/>
+</div>
+<div class="color-picker">
+<label for="lightBorderAccent">Light Border</label>
+<input id="lightBorderAccent" type="color" value="#b56d5a"/>
+</div>
+</div>
+</div>
+<div class="section">
+<h4>Checklist Data</h4>
+<button class="toggle-button" id="manualSave">Manual Save</button>
+<button class="toggle-button" id="hardReset">Hard Reset</button>
+<button class="toggle-button" id="toggleImportExport">Import/Export</button>
+<div id="importExportPanel" style="display:none;">
+<textarea id="importExportText" style="width:100%; height:100px; resize:none; margin-bottom:10px;"></textarea>
+<div class="import-export-buttons">
+<button class="toggle-button" id="exportButton">Export</button>
+<button class="toggle-button" id="importButton">Import</button>
+<button class="toggle-button" id="copyAllButton">Copy All</button>
+</div>
+</div>
+</div>
+<div class="section">
+<h4>Rename Title</h4>
+<button class="toggle-button" id="renameButton">Rename Title</button>
+</div>
+<div class="section">
+<h4>Title Limit</h4>
+<button class="toggle-button" id="changeTitleLimit">Change Title Character Limit</button>
+</div>
+
+<div class="section">
+<h4>Zoom</h4>
+<label for="zoomRange">Zoom Level: <span id="zoomValue">100%</span></label>
+<input id="zoomRange" max="150" min="50" type="range" value="100"/>
+</div>
+</div>
+<!-- Top Left Controls -->
+<!-- Warning container -->
+<div id="colorWarningContainer"></div>
+<!-- Top Right Buttons -->
+<div class="app-container">
+<!-- Checklist Section -->
+<div id="checklistContainer">
+<!-- HEADER -->
+<div class="header-container">
+<!-- LEFT COLUMN: Title & select/deselect buttons -->
+<div class="header-left-col">
+<h2>
+<span id="renameableTitle">Demon's</span><br/>
             Checklist
           </h2>
-          <div class="stacked-buttons">
-            <button id="selectAll" class="stacked-button">Select All</button>
-            <button id="deselectAll" class="stacked-button">Deselect All</button>
-          </div>
-        </div>
-        <!-- RIGHT COLUMN: Counter and toggle buttons -->
-        <div class="header-right-col">
-          <div id="counter">Completed 0 of 0 items</div>
-          <div class="button-row">
-            <button id="massSelectToggle" class="toggle-button">Mass Select: Off</button>
-            <button id="multiDeleteToggle" class="toggle-button">Multi-Delete: Off</button>
-            <button id="scrollToBottom" class="scroll-button">▼</button>
-          </div>
-        </div>
-      </div>
-      <!-- Add item & list -->
-      <div>
-        <input type="text" id="addItem" placeholder="Enter new item (e.g., 5 cherries)" />
-        <button id="addButton">Add Item</button>
-      </div>
-      <ul id="itemList"></ul>
-      <button id="clearAll">Clear All</button>
-      <button id="scrollToTop" class="scroll-button">▲</button>
-    </div>
-
-    <!-- Import/Export & Rename Container -->
-    <div id="importExportContainer">
-      <button id="toggleImportExport" class="toggle-button">Import/Export</button>
-      <div id="importExportPanel">
-        <h3>Import/Export</h3>
-        <textarea id="importExportText" rows="10"></textarea>
-        <div class="import-export-buttons">
-          <button id="exportButton" class="toggle-button">Export</button>
-          <button id="importButton" class="toggle-button">Import</button>
-          <button id="copyAllButton" class="toggle-button small-button">Copy All</button>
-        </div>
-      </div>
-      <button id="renameButton">Rename Title</button>
-    </div>
-  </div>
-
-  <script>
+<div class="stacked-buttons">
+<button class="stacked-button" id="selectAll">Select All</button>
+<button class="stacked-button" id="deselectAll">Deselect All</button>
+</div>
+</div>
+<!-- RIGHT COLUMN: Counter and toggle buttons -->
+<div class="header-right-col">
+<div id="counter">Completed 0 of 0 items</div>
+<div class="button-row">
+<button class="toggle-button" id="massSelectToggle">Mass Select: Off</button>
+<button class="toggle-button" id="multiDeleteToggle">Multi-Delete: Off</button>
+<button class="scroll-button" id="scrollToBottom">▼</button>
+</div>
+</div>
+</div>
+<!-- Add item & list -->
+<div>
+<input id="addItem" placeholder="Enter new item (e.g., 5 cherries)" type="text"/>
+<button id="addButton">Add Item</button>
+</div>
+<ul id="itemList"></ul>
+<button id="clearAll">Clear All</button>
+<button class="scroll-button" id="scrollToTop">▲</button>
+</div>
+<!-- Import/Export & Rename Container -->
+</div>
+<script>
     // --- Local Storage Functions ---
     function saveData() {
       const checklistData = [];
@@ -813,21 +837,12 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
 
     // Toggle the Import/Export panel
     document.getElementById('toggleImportExport').addEventListener('click', () => {
-      document.getElementById('importExportPanel').classList.toggle('show');
-    });
+  const panel = document.getElementById('importExportPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
 
-    // Rename Title functionality
-    document.getElementById('renameButton').addEventListener('click', () => {
-      const currentName = document.getElementById('renameableTitle').textContent;
-      let newName = prompt("Enter new title (max 10 characters):", currentName);
-      if (newName === null) return;
-      newName = newName.trim().slice(0, 10);
-      if (!newName) newName = "Demon's";
-      document.getElementById('renameableTitle').textContent = newName;
-      document.title = newName + " Checklist";
-      saveData();
-    });
 
+    
     // --- Checklist Functionality ---
     const massSelectToggle = document.getElementById('massSelectToggle');
     const multiDeleteToggle = document.getElementById('multiDeleteToggle');
@@ -951,5 +966,80 @@ LightBorder: ${cs.getPropertyValue('--light-border-accent').trim()}
       saveData();
     });
   </script>
+<script>
+document.getElementById('settingsToggle').addEventListener('click', () => {
+  const panel = document.getElementById('settingsPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+</script><script>
+document.getElementById('closeSettings').addEventListener('click', () => {
+  document.getElementById('settingsPanel').style.display = 'none';
+});
+</script>
+<script>
+  let titleLimit = localStorage.getItem('checklistTitleLimit') ? parseInt(localStorage.getItem('checklistTitleLimit')) : 10;
+
+  function updateRenamePrompt() {
+    document.getElementById('renameButton').title = `Enter new title (max ${titleLimit} characters)`;
+  }
+
+  document.getElementById('renameButton').addEventListener('click', () => {
+    const currentName = document.getElementById('renameableTitle').textContent;
+    let newName = prompt(`Enter new title (max ${titleLimit} characters):`, currentName);
+    if (newName === null) return;
+    newName = newName.trim().slice(0, titleLimit);
+    if (!newName) newName = "Demon's";
+    document.getElementById('renameableTitle').textContent = newName;
+    document.title = newName + " Checklist";
+    saveData();
+  });
+
+  document.getElementById('changeTitleLimit').addEventListener('click', () => {
+    let newLimit = prompt("Enter new character limit for the title (Warning: long titles may disrupt layout):", titleLimit);
+    if (newLimit === null) return;
+    newLimit = parseInt(newLimit);
+    if (isNaN(newLimit) || newLimit <= 0) {
+      alert("Please enter a valid positive number.");
+      return;
+    }
+    titleLimit = newLimit;
+    localStorage.setItem('checklistTitleLimit', titleLimit.toString());
+    updateRenamePrompt();
+    saveData();
+  });
+
+  updateRenamePrompt();
+</script>
+
+<script>
+  const zoomRange = document.getElementById('zoomRange');
+  const zoomValueDisplay = document.getElementById('zoomValue');
+
+  function applyZoom(zoom) {
+    document.documentElement.style.transform = `scale(${zoom / 100})`;
+    document.documentElement.style.transformOrigin = 'top left';
+    document.documentElement.style.width = `${100 / (zoom / 100)}%`;
+    zoomValueDisplay.textContent = `${zoom}%`;
+  }
+
+  // Load saved zoom from localStorage
+  const savedZoom = localStorage.getItem('checklistZoom');
+  if (savedZoom) {
+    zoomRange.value = savedZoom;
+    applyZoom(parseInt(savedZoom));
+  }
+
+  // Show preview as user drags
+  zoomRange.addEventListener('input', () => {
+    zoomValueDisplay.textContent = `${zoomRange.value}%`;
+  });
+
+  // Apply zoom only when user lets go
+  zoomRange.addEventListener('change', () => {
+    const zoom = parseInt(zoomRange.value);
+    applyZoom(zoom);
+    localStorage.setItem('checklistZoom', zoom);
+  });
+</script>
 </body>
 </html>
